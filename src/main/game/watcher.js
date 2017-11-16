@@ -1,51 +1,61 @@
 import psList from 'ps-list'
 import * as dirs from './dirs'
 import path from 'path'
+import chokidar from 'chokidar'
 
 // Scan the program list for Heroes of the Storm
-const PROGRAM_NAME = 'Heroes of the Storm'
+const PROGRAM_BINARY_NAME = 'HeroesOfTheStorm_x64.exe'
 
 function program() {
-    setInterval(() => {
+    const scan = () => {
         psList().then((ps) => {
             let active = false
 
             for (let p in ps) {
                 const program = ps[p]
 
-                if (program.name === PROGRAM_NAME) {
+                if (program.name === PROGRAM_BINARY_NAME) {
                     active = true
                 }
             }
 
-            global.HotSTube.programRunning = active
+            global.HotSTube.programActive = active
+
+            // Poll more infrequently if running to prevent frequent CPU usage
+            setTimeout(scan, active ? 60000 : 5000)
         })
-    }, 5000)
+    }
+
+    scan()
 }
 
 
 function game() {
-    const opts = {
+    const watcher = chokidar.watch([dirs.lobby, dirs.account], {
         persistent: true,
         ignorePermissionErrors: true
-    }
-    const accountWatcher = chokidar.watch(dirs.account, opts)
-    const replayWatcher = chokidar.watch(dirs.lobby, { ...opts, awaitWriteFinish: true })
-    const saveWatcher = chokidar.watch(dir.saves(), opts)
+    })
 
-    const watcher = chokidar.watch([dirs.lobby, ...dirs.saves(), ...dirs.replays()])
+    let gameTime = 0
+    let timer = null
 
-    watchery.on('read', () => {
-        watcher.on('add', (path) => {
-            const ext = path.extname(path)
+    watcher.on('ready', () => {
+        watcher.on('add', (file) => {
+            const ext = path.extname(file)
 
             if (ext === '.StormReplay') {
-                // Game ended
+                global.HotSTube.gameActive = false
+                global.HotSTube.lastReplayFile = file
+                timer = null
+                gameTime = 0
             } else if (ext === '.StormSave') {
-                // 90 second mark
+                global.HotSTube.lastGame90SecondMarkAt = gameTime - 90
             }
-            if (path.win32.basename(path) === 'replay.tracker.events') {
-                // Game started
+            if (path.win32.basename(file) === 'replay.tracker.events') {
+                global.HotSTube.gameActive = true
+                timer = setInterval(() => {
+                    gameTime += 1
+                }, 1000)
             }
         })
     })
@@ -53,8 +63,7 @@ function game() {
 
 function watcher() {
     program()
-
-
+    game()
 }
 
 export default watcher

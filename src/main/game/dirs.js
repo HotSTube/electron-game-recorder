@@ -1,6 +1,5 @@
 import os from 'os'
 import path from 'path'
-import glob from 'glob'
 
 let lobby, account
 
@@ -13,13 +12,4 @@ if (os.platform() == 'win32') {
 } else {
     throw new Error(os.platform() + ' is unsupported')
 }
-
-const replays = () => {
-    return  glob.sync(account + '/**/Replays/')
-}
-
-const saves = () => {
-    return glob.sync(account + '/**/Saves/')
-}
-
-export { account, lobby, replays, saves }
+export { account, lobby }

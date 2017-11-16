@@ -4,8 +4,6 @@ import { app, BrowserWindow } from 'electron'
 import * as game from './game'
 import proxy from './global'
 
-global.HotSTube = proxy
-
 game.initialize()
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
@@ -13,6 +11,8 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 // Global reference to mainWindow
 // Necessary to prevent win from being garbage collected
 let mainWindow
+
+global.HotSTube = proxy
 
 function createMainWindow() {
   // Construct new BrowserWindow
